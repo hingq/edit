@@ -12,6 +12,12 @@ class CodeBlock implements BlockTool {
   wrapper: HTMLElement
   codeElement!: HTMLElement
 
+  constructor({ data, api }: BlockToolConstructorOptions) {
+    this.api = api
+    this.data = Object.assign({ code: '', language: 'javaScript' }, data)
+    this.wrapper = document.createElement('div')
+  }
+
   static get toolbox(): toolConfig {
     return {
       title: 'Code',
@@ -19,29 +25,29 @@ class CodeBlock implements BlockTool {
     }
   }
 
-  constructor({ data, api }: BlockToolConstructorOptions) {
-    this.api = api
-    this.data = Object.assign({ code: '', language: 'javascript' }, data)
-    this.wrapper = document.createElement('div')
+  // 回车换行的默认行为
+  public static get enableLineBreaks(): boolean {
+    return true
   }
 
   render(): HTMLElement {
     this.wrapper.classList.add('code-block-wrapper')
 
     // 语言选择框
-    const select = document.createElement('select')
-    select.innerHTML = `
-      <option value="javascript">JavaScript</option>
-      <option value="typescript">TypeScript</option>
-      <option value="html">HTML</option>
-      <option value="css">CSS</option>
-      <option value="python">Python</option>
-    `
-    select.value = this.data.language
-    select.addEventListener('change', (e) => {
-      this.data.language = (e.target as HTMLSelectElement).value
-      this.codeElement.className = `language-${this.data.language}`
-      this.highlightCode() // 重新高亮
+    const select = make('span', ['ts', 'lan-span'], { contentEditable: true })
+    select.innerText = this.data.language
+    select.addEventListener('blur', (e) => {
+      const text = (e.target as HTMLElement).innerText.trim()
+      if (text.length > 0 && text !== 'no language') {
+        this.data.language = text
+        this.codeElement.className = `language-${this.data.language}`
+        this.highlightCode()
+      } else {
+        this.data.language = ''
+        select.innerText = 'no language'
+        this.codeElement.className = `no-highlight`
+      }
+      // 重新高亮
     })
 
     // 代码块
@@ -52,54 +58,23 @@ class CodeBlock implements BlockTool {
     this.wrapper.appendChild(select)
     this.wrapper.appendChild(pre)
 
-    // 监听输入事件，更新 this.data.code
-    this.codeElement.addEventListener('input', () => {
-      this.data.code = this.codeElement.innerText
-      // this.highlightCode()
-      setTimeout(() => {
-        this.highlightCode()
-      }, 1000)
+    this.codeElement.addEventListener('blur', () => {
+      this.highlightCode()
     })
-
-    // 监听代码元素变化并进行高亮
-    // this.observeCodeChange()
-
     return this.wrapper
   }
 
   save() {
     return this.data
   }
-  // 回车换行的默认行为
-  public static get enableLineBreaks(): boolean {
-    return true
-  }
+
   private highlightCode() {
     // 调用 highlight.js 的高亮方法
-    // 转义 HTML，避免 Highlight.js 的安全警告
-    this.codeElement.innerHTML = escapeHTML(this.data.code)(
-      // 执行高亮
-      window as any
-    ).hljs.highlightElement(this.codeElement)
-    ;(window as any).hljs.highlightElement(this.codeElement)
-  }
-
-  private observeCodeChange(): void {
-    const observer = new MutationObserver((mutations) => {
-      console.log('mutations', mutations[0].target)
-      this.highlightCode(mutations[0].target)
+    const _html = (window as any).hljs.highlight(this.codeElement.outerText, {
+      language: this.data.language
     })
-
-    observer.observe(this.codeElement, { childList: true, subtree: true, characterData: true })
+    this.codeElement.innerHTML = _html.value
   }
 }
 
 export default CodeBlock
-function escapeHTML(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;')
-}

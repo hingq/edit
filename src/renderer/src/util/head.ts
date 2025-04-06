@@ -5,7 +5,9 @@
 
 import { IconH1, IconH2, IconH3, IconH4, IconH5, IconH6 } from '@codexteam/icons'
 import { API, BlockTune, PasteEvent } from '@editorjs/editorjs'
+
 const IconHeading = ''
+
 /**
  * @description Tool's input and output data format
  */
@@ -88,11 +90,6 @@ export default class Header {
    */
   private _settings: HeaderConfig
   /**
-   * Block's data
-   * @private
-   */
-  private _data: HeaderData
-  /**
    * Main Block wrapper
    * @private
    */
@@ -126,6 +123,17 @@ export default class Header {
      */
     this._element = this.getTag()
   }
+
+  /**
+   * Allow Header to be converted to/from other blocks
+   */
+  static get conversionConfig() {
+    return {
+      export: 'text', // use 'text' property for other blocks
+      import: 'text' // fill 'text' property from other block's export string
+    }
+  }
+
   /**
    * Styles
    */
@@ -135,6 +143,210 @@ export default class Header {
   //     wrapper: 'ce-header'
   //   }
   // }
+
+  /**
+   * Sanitizer Rules
+   */
+  static get sanitize() {
+    return {
+      level: false,
+      text: {}
+    }
+  }
+
+  /**
+   * Returns true to notify core that read-only is supported
+   *
+   * @returns {boolean}
+   */
+  static get isReadOnlySupported() {
+    return true
+  }
+
+  /**
+   * Used by Editor.js paste handling API.
+   * Provides configuration to handle H1-H6 tags.
+   *
+   * @returns {{handler: (function(HTMLElement): {text: string}), tags: string[]}}
+   */
+  static get pasteConfig() {
+    return {
+      tags: ['H1', 'H2', 'H3', 'H4', 'H5', 'H6']
+    }
+  }
+
+  /**
+   * @description 添加到工具箱
+   * icon - Tool icon's SVG
+   * title - title to show in toolbox
+   *
+   * @returns {{icon: string, title: string}}
+   */
+  static get toolbox(): object {
+    return {
+      icon: IconHeading,
+      title: 'Heading'
+    }
+  }
+
+  /**
+   * Block's data
+   * @private
+   */
+  private _data: HeaderData
+
+  /**
+   * Get current Tools`s data
+   *
+   * @returns {HeaderData} Current data
+   * @private
+   */
+  get data(): HeaderData {
+    this._data.text = this._element.innerHTML
+    this._data.level = this.currentLevel.number
+
+    return this._data
+  }
+
+  /**
+   * Store data in plugin:
+   * - at the this._data property
+   * - at the HTML
+   *
+   * @param {HeaderData} data — data to set
+   * @private
+   */
+  set data(data: HeaderData) {
+    this._data = this.normalizeData(data)
+    console.log(data)
+    /**
+     * If level is set and block in DOM
+     * then replace it to a new block
+     */
+    if (data.level !== undefined && this._element.parentNode) {
+      /**
+       * Create a new tag
+       *
+       * @type {HTMLHeadingElement}
+       */
+      const newHeader = this.getTag()
+
+      /**
+       * Save Block's content
+       */
+      newHeader.innerHTML = this._element.innerHTML
+
+      /**
+       * Replace blocks
+       */
+      this._element.parentNode.replaceChild(newHeader, this._element)
+
+      /**
+       * Save new block to private variable
+       *
+       * @type {HTMLHeadingElement}
+       * @private
+       */
+      this._element = newHeader
+    }
+
+    /**
+     * If data.text was passed then update block's content
+     */
+    if (data.text !== undefined) {
+      this._element.innerHTML = this._data.text || ''
+    }
+  }
+
+  /**
+   * Get current level
+   *
+   * @returns {level}
+   */
+  get currentLevel(): Level {
+    let level = this.levels.find((levelItem) => levelItem.number === this._data.level)
+
+    if (!level) {
+      level = this.defaultLevel
+    }
+
+    return level
+  }
+
+  /**
+   * Return default level
+   *
+   * @returns {level}
+   */
+  get defaultLevel(): Level {
+    /**
+     * User can specify own default level value
+     */
+    if (this._settings.defaultLevel) {
+      const userSpecified = this.levels.find((levelItem) => {
+        return levelItem.number === this._settings.defaultLevel
+      })
+
+      if (userSpecified) {
+        return userSpecified
+      } else {
+        console.warn(
+          "(ง'̀-'́)ง Heading Tool: the default level specified was not found in available levels"
+        )
+      }
+    }
+
+    /**
+     * With no additional options, there will be H2 by default
+     *
+     * @type {level}
+     */
+    return this.levels[1]
+  }
+
+  /**
+   * Available header levels
+   *
+   * @returns {level[]}
+   */
+  get levels(): Level[] {
+    const availableLevels = [
+      {
+        number: 1,
+        tag: 'H1',
+        svg: IconH1
+      },
+      {
+        number: 2,
+        tag: 'H2',
+        svg: IconH2
+      },
+      {
+        number: 3,
+        tag: 'H3',
+        svg: IconH3
+      },
+      {
+        number: 4,
+        tag: 'H4',
+        svg: IconH4
+      },
+      {
+        number: 5,
+        tag: 'H5',
+        svg: IconH5
+      },
+      {
+        number: 6,
+        tag: 'H6',
+        svg: IconH6
+      }
+    ]
+
+    return this._settings.levels
+      ? availableLevels.filter((l) => this._settings.levels!.includes(l.number))
+      : availableLevels
+  }
 
   /**
    * Check if data is valid
@@ -219,6 +431,13 @@ export default class Header {
   }
 
   /**
+   * @typedef {object} level
+   * @property {number} number - level number
+   * @property {string} tag - tag corresponds with level number
+   * @property {string} svg - icon
+   */
+
+  /**
    * Validate Text block data:
    * - check for emptiness
    *
@@ -241,98 +460,6 @@ export default class Header {
     return {
       text: toolsContent.innerHTML,
       level: this.currentLevel.number
-    }
-  }
-
-  /**
-   * Allow Header to be converted to/from other blocks
-   */
-  static get conversionConfig() {
-    return {
-      export: 'text', // use 'text' property for other blocks
-      import: 'text' // fill 'text' property from other block's export string
-    }
-  }
-
-  /**
-   * Sanitizer Rules
-   */
-  static get sanitize() {
-    return {
-      level: false,
-      text: {}
-    }
-  }
-
-  /**
-   * Returns true to notify core that read-only is supported
-   *
-   * @returns {boolean}
-   */
-  static get isReadOnlySupported() {
-    return true
-  }
-
-  /**
-   * Get current Tools`s data
-   *
-   * @returns {HeaderData} Current data
-   * @private
-   */
-  get data(): HeaderData {
-    this._data.text = this._element.innerHTML
-    this._data.level = this.currentLevel.number
-
-    return this._data
-  }
-
-  /**
-   * Store data in plugin:
-   * - at the this._data property
-   * - at the HTML
-   *
-   * @param {HeaderData} data — data to set
-   * @private
-   */
-  set data(data: HeaderData) {
-    this._data = this.normalizeData(data)
-    console.log(data)
-    /**
-     * If level is set and block in DOM
-     * then replace it to a new block
-     */
-    if (data.level !== undefined && this._element.parentNode) {
-      /**
-       * Create a new tag
-       *
-       * @type {HTMLHeadingElement}
-       */
-      const newHeader = this.getTag()
-
-      /**
-       * Save Block's content
-       */
-      newHeader.innerHTML = this._element.innerHTML
-
-      /**
-       * Replace blocks
-       */
-      this._element.parentNode.replaceChild(newHeader, this._element)
-
-      /**
-       * Save new block to private variable
-       *
-       * @type {HTMLHeadingElement}
-       * @private
-       */
-      this._element = newHeader
-    }
-
-    /**
-     * If data.text was passed then update block's content
-     */
-    if (data.text !== undefined) {
-      this._element.innerHTML = this._data.text || ''
     }
   }
 
@@ -369,103 +496,6 @@ export default class Header {
     tag.dataset.placeholder = this.api.i18n.t(this._settings.placeholder || '')
 
     return tag
-  }
-
-  /**
-   * Get current level
-   *
-   * @returns {level}
-   */
-  get currentLevel(): Level {
-    let level = this.levels.find((levelItem) => levelItem.number === this._data.level)
-
-    if (!level) {
-      level = this.defaultLevel
-    }
-
-    return level
-  }
-
-  /**
-   * Return default level
-   *
-   * @returns {level}
-   */
-  get defaultLevel(): Level {
-    /**
-     * User can specify own default level value
-     */
-    if (this._settings.defaultLevel) {
-      const userSpecified = this.levels.find((levelItem) => {
-        return levelItem.number === this._settings.defaultLevel
-      })
-
-      if (userSpecified) {
-        return userSpecified
-      } else {
-        console.warn(
-          "(ง'̀-'́)ง Heading Tool: the default level specified was not found in available levels"
-        )
-      }
-    }
-
-    /**
-     * With no additional options, there will be H2 by default
-     *
-     * @type {level}
-     */
-    return this.levels[1]
-  }
-
-  /**
-   * @typedef {object} level
-   * @property {number} number - level number
-   * @property {string} tag - tag corresponds with level number
-   * @property {string} svg - icon
-   */
-
-  /**
-   * Available header levels
-   *
-   * @returns {level[]}
-   */
-  get levels(): Level[] {
-    const availableLevels = [
-      {
-        number: 1,
-        tag: 'H1',
-        svg: IconH1
-      },
-      {
-        number: 2,
-        tag: 'H2',
-        svg: IconH2
-      },
-      {
-        number: 3,
-        tag: 'H3',
-        svg: IconH3
-      },
-      {
-        number: 4,
-        tag: 'H4',
-        svg: IconH4
-      },
-      {
-        number: 5,
-        tag: 'H5',
-        svg: IconH5
-      },
-      {
-        number: 6,
-        tag: 'H6',
-        svg: IconH6
-      }
-    ]
-
-    return this._settings.levels
-      ? availableLevels.filter((l) => this._settings.levels!.includes(l.number))
-      : availableLevels
   }
 
   /**
@@ -517,32 +547,6 @@ export default class Header {
         level,
         text: content.innerHTML
       }
-    }
-  }
-
-  /**
-   * Used by Editor.js paste handling API.
-   * Provides configuration to handle H1-H6 tags.
-   *
-   * @returns {{handler: (function(HTMLElement): {text: string}), tags: string[]}}
-   */
-  static get pasteConfig() {
-    return {
-      tags: ['H1', 'H2', 'H3', 'H4', 'H5', 'H6']
-    }
-  }
-
-  /**
-   * @description 添加到工具箱
-   * icon - Tool icon's SVG
-   * title - title to show in toolbox
-   *
-   * @returns {{icon: string, title: string}}
-   */
-  static get toolbox(): object {
-    return {
-      icon: IconHeading,
-      title: 'Heading'
     }
   }
 }

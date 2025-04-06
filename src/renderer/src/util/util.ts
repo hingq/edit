@@ -1,25 +1,38 @@
+const RegQuote = /^(>\s|》\s)/ // 引用
+// const RegCode = /^(```|```)/ // 代码块
+const RegHead = /^#{1,6}\s/ // 标题z
+const RegCode = /^(```|···)\s/ // 代码块
+const RegOrderList = /^(1\.)\s/ // 有序列表
+//markdown语法监听
 export const listenCode = (api): boolean => {
-  const RegQuote = /^(>\s|》\s)/ // 引用
-  // const RegCode = /^(```|```)/ // 代码块
-  const RegHead = /^#{1,6}\s/ // 标题z
-
   const index = api.blocks.getCurrentBlockIndex()
   const block = api.blocks.getBlockByIndex(index) || null
 
   if (!block) return false
   const text = block.holder.innerText
   if (text && RegQuote.test(text)) {
+    /** 引用 */
     insetBlock('quote', api, { text }, index, block, RegQuote)
   } else if (text && RegHead.test(text)) {
+    /** 标题 */
     const level = text.match(/#/g)?.length || 1
     insetBlock('header', api, { text: text, level: level }, index, block, RegHead)
+  } else if (text && RegCode.test(text)) {
+    /** 代码块 */
+    insetBlock('code', api, { text: text }, index, block, RegCode)
+  } else if (text && RegOrderList.test(text)) {
+    // orderList
+    insetBlock('orderList', api, { text: text }, index, block, RegOrderList)
   }
   return true
 }
+
 interface config {
   text: string
   level?: number
 }
+
+// 块插入
 function insetBlock(
   type: string,
   api,
@@ -29,6 +42,7 @@ function insetBlock(
   reg: RegExp
 ): void {
   const newText = config.text.replace(reg, '')
+
   block.holder.innerText = newText
   api.blocks.insert(
     type,
@@ -41,4 +55,14 @@ function insetBlock(
   setTimeout(() => {
     api.caret.focus(true)
   }, 100)
+}
+
+export function setCursorToElement(el: HTMLElement) {
+  const range = document.createRange()
+  const sel = window.getSelection()
+  range.selectNodeContents(el)
+  range.collapse(false) // 光标置于末尾
+  sel?.removeAllRanges()
+  sel?.addRange(range)
+  el.focus()
 }

@@ -54,6 +54,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
 h1,
 h2,
 h3,
@@ -62,22 +63,49 @@ h5,
 h6 {
   outline: none !important;
 }
+
 div {
   outline: none !important;
 }
+
 pre {
   display: flex;
   outline: none;
   min-height: 100px; /* 设置最小高度 */
   max-height: 270px; /* 允许滚动 */
 }
+
 code {
+  color: #f2f2f2;
   display: block;
-  min-height: 100px; /* 让 code 也有高度 */
-  width: 100%;
+  min-height: 100px;
+  max-height: 270px;
+  min-width: 490px;
+  width: auto;
   outline: none;
   border: none;
   background: transparent;
-  font-family: monospace;
   overflow: auto;
+}
+
+.lan-span {
+  display: block;
+  outline: none !important;
+  border: transparent 1px solid;
+  border-radius: 4px;
+  max-width: 180px;
+  min-width: 100px;
+  width: 10%;
+  transition: border-color ease-in-out 0.15s,
+  box-shadow ease-in-out 0.15s;
+}
+
+.lan-span:focus {
+  border: 1px solid #cccccc;
+}
+
+ol,
+li {
+  /*list-style: none;*/
+  outline: none;
 }

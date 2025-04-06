@@ -5,9 +5,9 @@ import type {
   API,
   BlockAPI,
   BlockTool,
-  ToolConfig,
+  ConversionConfig,
   SanitizerConfig,
-  ConversionConfig
+  ToolConfig
 } from '@editorjs/editorjs'
 
 /**
@@ -249,6 +249,18 @@ export default class Quote implements BlockTool {
   }
 
   /**
+   * Sanitizer rules
+   * @returns sanitizer rules
+   */
+  public static get sanitize(): SanitizerConfig {
+    return {
+      text: {
+        br: true
+      }
+    }
+  }
+
+  /**
    * Create Quote Tool container with inputs
    * @returns blockquote DOM element - Quote Tool container
    */
@@ -275,17 +287,5 @@ export default class Quote implements BlockTool {
     return Object.assign(this.data, {
       text: text?.innerHTML ?? ''
     })
-  }
-
-  /**
-   * Sanitizer rules
-   * @returns sanitizer rules
-   */
-  public static get sanitize(): SanitizerConfig {
-    return {
-      text: {
-        br: true
-      }
-    }
   }
 }
