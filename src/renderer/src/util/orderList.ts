@@ -17,13 +17,14 @@ export default class OrderListTool implements BlockTool {
     this.data = data || ''
   }
 
+  // 工具栏
   public static get toolbox() {
     return {
       title: 'Ordered List',
       icon: `<svg width="17" height="17" viewBox="0 0 24 24"><path d="M8 6h13v2H8zM8 11h13v2H8zM8 16h13v2H8zM3 6h1v1H3zM3 11h1v1H3zM3 16h1v1H3z"/></svg>`
     }
   }
-
+  // 处理换行
   public static get enableLineBreaks() {
     return true
   }

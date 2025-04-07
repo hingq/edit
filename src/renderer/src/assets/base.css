@@ -96,8 +96,9 @@ code {
   max-width: 180px;
   min-width: 100px;
   width: 10%;
-  transition: border-color ease-in-out 0.15s,
-  box-shadow ease-in-out 0.15s;
+  transition:
+    border-color ease-in-out 0.15s,
+    box-shadow ease-in-out 0.15s;
 }
 
 .lan-span:focus {
@@ -108,4 +109,13 @@ ol,
 li {
   /*list-style: none;*/
   outline: none;
+}
+li {
+  text-align: left;
+}
+
+a {
+  display: block;
+  width: 100%;
+  outline: none !important;
 }

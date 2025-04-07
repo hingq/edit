@@ -66,3 +66,19 @@ export function setCursorToElement(el: HTMLElement) {
   sel?.addRange(range)
   el.focus()
 }
+/*
+ *@description: 获取当前选中的元素
+ *  */
+export const getCurrentEle = (): HTMLElement | undefined => {
+  const selection = window.getSelection()
+  if (!selection || selection.rangeCount === 0) return
+
+  let node = selection.getRangeAt(0).startContainer
+
+  // 如果是文本节点（nodeType === 3），获取它的父节点
+  if (node.nodeType === Node.TEXT_NODE) {
+    node = node.parentNode as Node
+  }
+
+  return node instanceof HTMLElement ? node : undefined
+}
