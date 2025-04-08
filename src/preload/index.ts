@@ -1,6 +1,6 @@
 import { contextBridge } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-
+import { shell } from 'electron'
 // Custom APIs for renderer
 const api = {}
 
@@ -20,3 +20,10 @@ if (process.contextIsolated) {
   // @ts-ignore (define in dts)
   window.api = api
 }
+
+// 暴露方法
+contextBridge.exposeInMainWorld('electron', {
+  open: (url: string) => {
+    shell.openExternal(url)
+  }
+})

@@ -2,12 +2,13 @@ import EditorJS, { API } from '@editorjs/editorjs'
 import Header from './util/head'
 import { make } from '@editorjs/dom'
 import Quote from './util/quote'
-import Link from './util/link'
+// @ts-ignore
+import Link from '@renderer/util/Link.ts'
 import CodeBlock from '@renderer/util/code'
 import { KeyboardEvent, useEffect, useRef } from 'react'
 import { getCurrentEle, listenCode, setCursorToElement } from '@renderer/util/util'
 import OrderListTool from '@renderer/util/orderList'
-
+import { handleEdit } from '@renderer/util/Link.ts'
 function bindGlobalBlockEvents(editorApi: any) {
   const el = document.getElementById('editorjs')
   if (!el) return
@@ -38,7 +39,7 @@ function bindGlobalBlockEvents(editorApi: any) {
       keyfunction(e, editorApi)
     }
   }
-  // 快捷键
+  // head快捷键
   const keyfunction = (e: KeyboardEvent, editor: API): void => {
     const index = editor.blocks.getCurrentBlockIndex()
     if (index === undefined || index === null) return
@@ -75,7 +76,20 @@ function bindGlobalBlockEvents(editorApi: any) {
     selection.removeAllRanges()
     selection.addRange(range)
   }
-
+  // 处理链接点击事件
+  function clickLink(e: any) {
+    if (e.target.tagName === 'A' && (e.ctrlKey || e.metaKey)) {
+      const url = e.target.getAttribute('href')
+      console.log(url)
+      window.electron.open(url.toString())
+    }
+  }
+  //处理 ‘/’的冲突
+  function handleSlash(e): void {
+    if (e.key === '/' && e.target.getAttribute('data-type') === 'link') {
+      // e.stopPropagation() //处理冲突
+    }
+  }
   //需要在捕获阶段，单独处理
   const handleArrowDown = (e: KeyboardEvent): any => {
     const target = e.target as HTMLElement | null
@@ -96,7 +110,6 @@ function bindGlobalBlockEvents(editorApi: any) {
           const total = editorApi.blocks.getBlocksCount()
           if (index + 1 === total) {
             editorApi.blocks.insert('paragraph', { text: '' }, {}, index + 1, false, false)
-            console.log(editorApi.caret.setToBlock(index + 1))
           } else {
             editorApi.caret.setToBlock(index + 1)
           }
@@ -116,14 +129,28 @@ function bindGlobalBlockEvents(editorApi: any) {
         handleOrderedListBackspace(e.target, editorApi)
         return
       }
+
+      handleSlash(e)
     },
     true
   )
+  // 键盘事件
   el.addEventListener('keydown', (e: any) => {
     handleKeydown(e)
   })
+  // 粘贴事件
   el.addEventListener('paste', handlePaste, true)
+  // 点击事件
+  el.addEventListener(
+    'click',
+    (e: any) => {
+      clickLink(e)
+      handleEdit(e, editorApi)
+    },
+    true
+  )
 }
+
 // title
 function isHeading(e: KeyboardEvent): boolean {
   return (e.ctrlKey || e.metaKey) && e.key >= '1' && e.key <= '6'
@@ -141,6 +168,7 @@ function isBackspaceOnOrderedList(key: string, target: HTMLElement): boolean {
   return key === 'Backspace' && target instanceof HTMLOListElement
 }
 
+// 处理下键逻辑
 function isArrowDown(key: string, target: HTMLElement): boolean {
   return key === 'ArrowDown' && target instanceof HTMLOListElement
 }
@@ -160,20 +188,20 @@ function handleOrderedListBackspace(target: any, editorApi: any) {
    * 处理orderList删除逻辑*/
   const currentLi = getCurrentEle()
   if (currentLi) {
-    let text = currentLi.innerText
+    const text = currentLi.innerText
     /*文本为空时，需要判断是否只有一个节点*/
     if (text.length === 0) {
       if (target.children.length === 1) {
         editorApi.blocks.delete()
       } else {
-        let pre = currentLi.previousElementSibling as HTMLLIElement
+        const pre = currentLi.previousElementSibling as HTMLLIElement
         target.removeChild(currentLi)
 
         setCursorToElement(pre)
       }
     } else {
       // 存在文字时，进行切片操作
-      let length = text.length
+      const length = text.length
       currentLi.innerText = text.slice(0, length - 1)
       setCursorToElement(currentLi)
     }

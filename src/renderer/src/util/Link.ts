@@ -12,7 +12,7 @@ export default class Link implements BlockTool {
   private data: LinkData
   private container!: HTMLAnchorElement
   private readOnly: boolean
-
+  private Regex: RegExp
   constructor({ data, api, readOnly }: BlockToolConstructorOptions<LinkData>) {
     this.api = api
     this.readOnly = readOnly
@@ -37,17 +37,15 @@ export default class Link implements BlockTool {
   render(): HTMLElement {
     const { text, href } = this.data
 
-    this.container = make('a', null, {
-      href: href || '#',
-      contentEditable: (!this.readOnly).toString(),
-      target: '_blank'
-    }) as HTMLAnchorElement
+    this.container = this.getLink(href)
 
     this.container.textContent = text || href || '链接文本'
 
     // 只有在非只读状态下才允许点击进行编辑
     if (!this.readOnly) {
-      this.container.addEventListener('click', this.handleEdit.bind(this))
+      this.container.addEventListener('click', (e: any) => {
+        // this.handleEdit(e)
+      })
     }
 
     return this.container
@@ -59,17 +57,36 @@ export default class Link implements BlockTool {
       href: this.container.getAttribute('href') || ''
     }
   }
+  getLink(href: string): HTMLAnchorElement {
+    return make('a', null, {
+      href: href || '#',
+      contentEditable: (!this.readOnly).toString(),
+      target: '_blank'
+    }) as HTMLAnchorElement
+  }
 
   // 直接在块内编辑链接的 text 和 href
-  private handleEdit() {
-    const newText = make('div', [], {
-      contentEditable: 'true',
-      innerText: `[name](https://example.com)`
-    })
-    newText.addEventListener('blur', () => {
-      const Regex = /^\[.*\]\(.*\)/
-      console.log(newText.innerText.match(Regex))
-    })
-    const parent = this.container.parentNode
-  }
+}
+function getEditDiv() {
+  return make('div', null, {
+    contentEditable: 'true',
+    innerText: `[name](https://example.com)`
+  })
+}
+export function handleEdit(e: any, api) {
+  e.preventDefault()
+  const Regex = /\[(.*?)\]\((.*?)\)/
+  const newText = getEditDiv()
+  newText.setAttribute('data-type', 'link')
+  newText.addEventListener('blur', () => {
+    const [_, text, href] = newText.innerText.match(Regex) || []
+    const data = {
+      text: text || '请检查输入',
+      href: href || ''
+    }
+    api.blocks.insert('link', data, {}, api.blocks.getCurrentBlockIndex(), true, true)
+  })
+  const parent = e.target!.parentNode as HTMLAnchorElement
+  parent.replaceChild(newText, e.target)
+  newText.focus() //手动聚焦，处理blur事件被触发
 }
