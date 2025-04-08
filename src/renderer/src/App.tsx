@@ -8,7 +8,8 @@ import CodeBlock from '@renderer/util/code'
 import { KeyboardEvent, useEffect, useRef } from 'react'
 import { getCurrentEle, listenCode, setCursorToElement } from '@renderer/util/util'
 import OrderListTool from '@renderer/util/orderList'
-import { handleEdit } from '@renderer/util/Link.ts'
+import { handleEdit } from '@renderer/util/Link'
+
 function bindGlobalBlockEvents(editorApi: any) {
   const el = document.getElementById('editorjs')
   if (!el) return
@@ -145,7 +146,9 @@ function bindGlobalBlockEvents(editorApi: any) {
     'click',
     (e: any) => {
       clickLink(e)
-      handleEdit(e, editorApi)
+      // a标签点击事件
+      // bug: a会被复制多次
+      if (e.target.tagName === 'A') handleEdit(e, editorApi)
     },
     true
   )
