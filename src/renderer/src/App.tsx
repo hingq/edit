@@ -18,13 +18,6 @@ function bindGlobalBlockEvents(editorApi: any) {
     const target = e.target as HTMLElement | null
     if (!target) return
     const key = e.key
-
-    // code 删除
-    if (isBackspaceOnEmptyCodeBlock(key, target)) {
-      const isempty = target.children.length === 0 && target.innerText.length === 0
-      if (isempty) deleteCurrentBlock(editorApi)
-      return
-    }
     // order enter
     if (isEnterOnOrderedList(key, target)) {
       e.preventDefault()
@@ -38,6 +31,21 @@ function bindGlobalBlockEvents(editorApi: any) {
     if (isHeading(e)) {
       e.preventDefault()
       keyfunction(e, editorApi)
+    }
+    // code 删除
+    if (isBackspaceOnEmptyCodeBlock(key, target)) {
+      const isempty = target.children.length === 0 && target.innerText.length === 0
+      if (isempty) deleteCurrentBlock(editorApi)
+      return
+    }
+    if (isdeleteHead(e)) {
+      e.preventDefault()
+      deleteCurrentBlock(editorApi)
+    }
+    //  删除quote
+    if (isQuoteDelete(e)) {
+      e.preventDefault()
+      deleteCurrentBlock(editorApi)
     }
   }
   // head快捷键
@@ -81,7 +89,6 @@ function bindGlobalBlockEvents(editorApi: any) {
   function clickLink(e: any) {
     if (e.target.tagName === 'A' && (e.ctrlKey || e.metaKey)) {
       const url = e.target.getAttribute('href')
-      console.log(url)
       window.electron.open(url.toString())
     }
   }
@@ -148,12 +155,32 @@ function bindGlobalBlockEvents(editorApi: any) {
       clickLink(e)
       // a标签点击事件
       // bug: a会被复制多次
-      if (e.target.tagName === 'A') handleEdit(e, editorApi)
+      if (e.target.tagName === 'A') {
+        // index必须在click事件中获取
+        handleEdit(e, editorApi, editorApi.blocks.getCurrentBlockIndex())
+      }
     },
-    true
+    {
+      capture: true
+    }
+  )
+}
+function isQuoteDelete(e) {
+  return (
+    e.key === 'Backspace' &&
+    e.target.getAttribute('data-type') === 'quote' &&
+    e.target.innerText.trim().length === 0
   )
 }
 
+// 标题删除
+function isdeleteHead(e): boolean {
+  return (
+    e.key === 'Backspace' &&
+    e.target.getAttribute('data-type') === 'header' &&
+    e.target.innerText.trim().length === 0
+  )
+}
 // title
 function isHeading(e: KeyboardEvent): boolean {
   return (e.ctrlKey || e.metaKey) && e.key >= '1' && e.key <= '6'

@@ -41,13 +41,6 @@ export default class Link implements BlockTool {
 
     this.container.textContent = text || href || '链接文本'
 
-    // 只有在非只读状态下才允许点击进行编辑
-    if (!this.readOnly) {
-      this.container.addEventListener('click', (e: any) => {
-        // this.handleEdit(e)
-      })
-    }
-
     return this.container
   }
 
@@ -73,8 +66,9 @@ function getEditDiv() {
     innerText: `[name](https://example.com)`
   })
 }
-export function handleEdit(e: any, api) {
+export function handleEdit(e: any, api, index) {
   e.preventDefault()
+  e.stopPropagation()
   const Regex = /\[(.*?)\]\((.*?)\)/
   const newText = getEditDiv()
   newText.setAttribute('data-type', 'link')
@@ -84,7 +78,7 @@ export function handleEdit(e: any, api) {
       text: text || '请检查输入',
       href: href || ''
     }
-    api.blocks.insert('link', data, {}, api.blocks.getCurrentBlockIndex(), true, true)
+    api.blocks.insert('link', data, {}, index, true, true)
   })
   const parent = e.target!.parentNode as HTMLAnchorElement
   parent.replaceChild(newText, e.target)

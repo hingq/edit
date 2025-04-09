@@ -270,7 +270,7 @@ export default class Quote implements BlockTool {
       contentEditable: !this.readOnly,
       innerText: this.data.text
     })
-
+    container.setAttribute('data-type', 'quote')
     container.appendChild(quote)
 
     return container

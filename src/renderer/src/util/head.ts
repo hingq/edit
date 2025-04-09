@@ -218,7 +218,6 @@ export default class Header {
    */
   set data(data: HeaderData) {
     this._data = this.normalizeData(data)
-    console.log(data)
     /**
      * If level is set and block in DOM
      * then replace it to a new block
@@ -494,7 +493,7 @@ export default class Header {
      * Add Placeholder
      */
     tag.dataset.placeholder = this.api.i18n.t(this._settings.placeholder || '')
-
+    tag.setAttribute('data-type', 'header')
     return tag
   }
 
