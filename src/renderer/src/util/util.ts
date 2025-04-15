@@ -1,8 +1,14 @@
+/*
+ * 处理快捷语法
+ * */
+
 const RegQuote = /^(>\s|》\s)/ // 引用
 // const RegCode = /^(```|```)/ // 代码块
 const RegHead = /^#{1,6}\s/ // 标题z
 const RegCode = /^(```|···)\s/ // 代码块
 const RegOrderList = /^(1\.)\s/ // 有序列表
+const RegLink = /^\[(.*)\]\((.*)\)\s/ // 链接
+const RegUnOrderList = /^(-|\+)\s/ // 无序列表
 //markdown语法监听
 export const listenCode = (api): boolean => {
   const index = api.blocks.getCurrentBlockIndex()
@@ -12,7 +18,7 @@ export const listenCode = (api): boolean => {
   const text = block.holder.innerText
   if (text && RegQuote.test(text)) {
     /** 引用 */
-    insetBlock('quote', api, { text }, index, block, RegQuote)
+    insetBlock('quote', api, { text: text }, index, block, RegQuote)
   } else if (text && RegHead.test(text)) {
     /** 标题 */
     const level = text.match(/#/g)?.length || 1
@@ -23,6 +29,13 @@ export const listenCode = (api): boolean => {
   } else if (text && RegOrderList.test(text)) {
     // orderList
     insetBlock('orderList', api, { text: text }, index, block, RegOrderList)
+  } else if (text && RegLink.test(text)) {
+    const name = text.match(RegLink)?.[1] || ''
+    const href = text.match(RegLink)?.[2] || ''
+    insetBlock('link', api, { text: name, href }, index, block, RegLink)
+  } else if (text && RegUnOrderList.test(text)) {
+    console.log('无序列表')
+    insetBlock('unorderedList', api, { text: text }, index, block, RegUnOrderList)
   }
   return true
 }
@@ -30,6 +43,7 @@ export const listenCode = (api): boolean => {
 interface config {
   text: string
   level?: number
+  href?: string
 }
 
 // 块插入
@@ -41,22 +55,22 @@ function insetBlock(
   block: any,
   reg: RegExp
 ): void {
-  const newText = config.text.replace(reg, '')
-
-  block.holder.innerText = newText
-  api.blocks.insert(
-    type,
-    { text: newText, level: config.level },
-    {},
-    index > 0 ? index : 0,
-    true,
-    true
-  )
+  const cfg: config = {
+    text: config.text,
+    level: config.level || undefined,
+    href: config.href || undefined
+  }
+  if (type !== 'link') {
+    cfg.text = cfg.text.replace(reg, '').trim()
+  }
+  console.log(cfg)
+  block.holder.innerText = ''
+  api.blocks.insert(type, cfg, {}, index > 0 ? index : 0, false, true)
   setTimeout(() => {
     api.caret.focus(true)
   }, 100)
 }
-
+/*设置光标*/
 export function setCursorToElement(el: HTMLElement) {
   const range = document.createRange()
   const sel = window.getSelection()

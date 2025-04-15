@@ -13,10 +13,11 @@ body {
 
 /* 覆盖 Editor.js 样式，应用 GitHub Markdown 风格 */
 #editorjs {
+  position: relative;
   background-color: #363b40;
   border-radius: 5px;
   width: 630px;
-  height: 500px;
+  height: 60vh;
   border: 1px solid #ccc;
   padding: 10px;
   overflow: auto;

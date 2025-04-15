@@ -482,7 +482,7 @@ export default class Header {
     /**
      * Add styles class
      */
-    // tag.classList.add(this._CSS.wrapper)
+    tag.classList.add('attchment')
 
     /**
      * Make tag editable

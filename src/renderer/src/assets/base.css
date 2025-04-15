@@ -106,6 +106,7 @@ code {
 }
 
 ol,
+ul,
 li {
   /*list-style: none;*/
   outline: none;
@@ -113,9 +114,18 @@ li {
 li {
   text-align: left;
 }
-
+ul {
+  list-style-type: disc;
+}
+ul > li {
+  list-style-type: circle;
+}
 a {
   display: block;
   width: 100%;
   outline: none !important;
+}
+.attchment {
+  position: sticky;
+  top: 0;
 }

@@ -1,14 +1,26 @@
 import EditorJS, { API } from '@editorjs/editorjs'
-import Header from './util/head'
 import { make } from '@editorjs/dom'
-import Quote from './util/quote'
 // @ts-ignore
-import Link from '@renderer/util/Link.ts'
-import CodeBlock from '@renderer/util/code'
 import { KeyboardEvent, useEffect, useRef } from 'react'
 import { getCurrentEle, listenCode, setCursorToElement } from '@renderer/util/util'
-import OrderListTool from '@renderer/util/orderList'
-import { handleEdit } from '@renderer/util/Link'
+
+import { Header, Quote, Link, CodeBlock, OrderListTool } from '@renderer/util/index'
+
+import {
+  deleteCurrentBlock,
+  handleOrderedListBackspace,
+  inertBlock,
+  isArrowDown,
+  isBackspaceOnEmptyCodeBlock,
+  isBackspaceOnOrderedList,
+  isdeleteHead,
+  isHeading,
+  isLinkDelete,
+  isQuoteDelete,
+  handleEdit,
+  isUnOrderListDelete
+} from '@renderer/util/handle'
+import unOrderListTool from '@renderer/util/unOrderList'
 
 function bindGlobalBlockEvents(editorApi: any) {
   const el = document.getElementById('editorjs')
@@ -18,14 +30,6 @@ function bindGlobalBlockEvents(editorApi: any) {
     const target = e.target as HTMLElement | null
     if (!target) return
     const key = e.key
-    // order enter
-    if (isEnterOnOrderedList(key, target)) {
-      e.preventDefault()
-      const newLi = make('li', [], { contentEditable: 'true' }) as HTMLLIElement
-      target.appendChild(newLi)
-      setCursorToElement(newLi) //处理光标位置
-      return
-    }
 
     /*快捷键*/
     if (isHeading(e)) {
@@ -38,12 +42,18 @@ function bindGlobalBlockEvents(editorApi: any) {
       if (isempty) deleteCurrentBlock(editorApi)
       return
     }
+    // 标题删除
     if (isdeleteHead(e)) {
       e.preventDefault()
       deleteCurrentBlock(editorApi)
     }
-    //  删除quote
+    // 删除quote
     if (isQuoteDelete(e)) {
+      e.preventDefault()
+      deleteCurrentBlock(editorApi)
+    }
+    //链接删除
+    if (isLinkDelete(e)) {
       e.preventDefault()
       deleteCurrentBlock(editorApi)
     }
@@ -89,10 +99,11 @@ function bindGlobalBlockEvents(editorApi: any) {
   function clickLink(e: any) {
     if (e.target.tagName === 'A' && (e.ctrlKey || e.metaKey)) {
       const url = e.target.getAttribute('href')
+      // @ts-ignore
       window.electron.open(url.toString())
     }
   }
-  //处理 ‘/’的冲突
+  //处理链接中 ‘/’的冲突
   function handleSlash(e): void {
     if (e.key === '/' && e.target.getAttribute('data-type') === 'link') {
       // e.stopPropagation() //处理冲突
@@ -103,6 +114,7 @@ function bindGlobalBlockEvents(editorApi: any) {
     const target = e.target as HTMLElement | null
     if (!target) return
     const key = e.key
+    // 处理↓键光标逻辑异常
     if (isArrowDown(key, target)) {
       e.preventDefault()
       e.stopPropagation()
@@ -131,7 +143,7 @@ function bindGlobalBlockEvents(editorApi: any) {
       // 处理键盘⬇️
       handleArrowDown(e)
       // orderList 删除
-      if (isBackspaceOnOrderedList(e.key, e.target)) {
+      if (isBackspaceOnOrderedList(e.key, e.target) || isUnOrderListDelete(e)) {
         e.preventDefault()
         e.stopPropagation()
         handleOrderedListBackspace(e.target, editorApi)
@@ -164,86 +176,6 @@ function bindGlobalBlockEvents(editorApi: any) {
       capture: true
     }
   )
-}
-function isQuoteDelete(e) {
-  return (
-    e.key === 'Backspace' &&
-    e.target.getAttribute('data-type') === 'quote' &&
-    e.target.innerText.trim().length === 0
-  )
-}
-
-// 标题删除
-function isdeleteHead(e): boolean {
-  return (
-    e.key === 'Backspace' &&
-    e.target.getAttribute('data-type') === 'header' &&
-    e.target.innerText.trim().length === 0
-  )
-}
-// title
-function isHeading(e: KeyboardEvent): boolean {
-  return (e.ctrlKey || e.metaKey) && e.key >= '1' && e.key <= '6'
-}
-// code 删除
-function isBackspaceOnEmptyCodeBlock(key: string, target: HTMLElement): boolean {
-  return key === 'Backspace' && target.contentEditable === 'true' && target.tagName === 'CODE'
-}
-// enter键
-function isEnterOnOrderedList(key: string, target: HTMLElement): boolean {
-  return key === 'Enter' && target instanceof HTMLOListElement
-}
-
-function isBackspaceOnOrderedList(key: string, target: HTMLElement): boolean {
-  return key === 'Backspace' && target instanceof HTMLOListElement
-}
-
-// 处理下键逻辑
-function isArrowDown(key: string, target: HTMLElement): boolean {
-  return key === 'ArrowDown' && target instanceof HTMLOListElement
-}
-
-function deleteCurrentBlock(editorApi: any) {
-  const index = editorApi.blocks.getCurrentBlockIndex?.()
-  if (index !== -1) {
-    editorApi.blocks.delete(index)
-  }
-}
-
-/*
- * 处理order 删除逻辑
- */
-function handleOrderedListBackspace(target: any, editorApi: any) {
-  /*
-   * 处理orderList删除逻辑*/
-  const currentLi = getCurrentEle()
-  if (currentLi) {
-    const text = currentLi.innerText
-    /*文本为空时，需要判断是否只有一个节点*/
-    if (text.length === 0) {
-      if (target.children.length === 1) {
-        editorApi.blocks.delete()
-      } else {
-        const pre = currentLi.previousElementSibling as HTMLLIElement
-        target.removeChild(currentLi)
-
-        setCursorToElement(pre)
-      }
-    } else {
-      // 存在文字时，进行切片操作
-      const length = text.length
-      currentLi.innerText = text.slice(0, length - 1)
-      setCursorToElement(currentLi)
-    }
-  }
-}
-
-const inertBlock = (index: number, block: any, editor: any, type: string, level?: any) => {
-  const text = block.holder.innerText
-  editor.blocks.insert(type, { text: text || '', level }, {}, index > 0 ? index : 0, false, true)
-  setTimeout(() => {
-    editor.focus(true)
-  }, 100)
 }
 
 function App(): JSX.Element {
@@ -279,6 +211,9 @@ function App(): JSX.Element {
           },
           orderList: {
             class: OrderListTool
+          },
+          unorderedList: {
+            class: unOrderListTool
           },
           link: {
             class: Link as any,
