@@ -52,6 +52,7 @@ export default class Link implements BlockTool {
   getLink(href: string): HTMLAnchorElement {
     return make('a', null, {
       href: href || 'https://www.example.com',
+      title: '按住Ctrl的同时点击鼠标进行跳转',
       contentEditable: (!this.readOnly).toString(),
       target: '_blank'
     }) as HTMLAnchorElement

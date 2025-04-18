@@ -10,11 +10,7 @@ export function isLinkDelete(e): boolean {
   )
 }
 export function isUnOrderListDelete(e): boolean {
-  return (
-    e.key === 'Backspace' &&
-    e.target.getAttribute('data-type') === 'unOrderList' &&
-    e.target.innerText.trim().length === 0
-  )
+  return e.key === 'Backspace' && e.target.getAttribute('data-type') === 'unOrderList'
 }
 
 // 引用删除
@@ -43,10 +39,12 @@ export function isBackspaceOnEmptyCodeBlock(key: string, target: HTMLElement): b
   return key === 'Backspace' && target.contentEditable === 'true' && target.tagName === 'CODE'
 }
 // enter键
-export function isEnterOnOrderedList(key: string, target: HTMLElement): boolean {
-  return key === 'Enter' && target instanceof HTMLOListElement
+export function isEnterOnOrderedList(key: string, target: HTMLElement, el): boolean {
+  return key === 'Enter' && target instanceof HTMLOListElement && el.parentElement !== target
 }
-
+export function isEnterOnunOrderedList(key: string, target: HTMLElement, el): boolean {
+  return key === 'Enter' && target instanceof HTMLUListElement && el.parentElement !== target
+}
 export function isBackspaceOnOrderedList(key: string, target: HTMLElement): boolean {
   return key === 'Backspace' && target instanceof HTMLOListElement
 }
@@ -63,34 +61,44 @@ export function deleteCurrentBlock(editorApi: any): void {
   }
 }
 
-/*
+/**
+ *
  * 处理order\unOrder 删除逻辑
  */
 export function handleOrderedListBackspace(target: any, editorApi: any): void {
   /*
    * 处理orderList删除逻辑*/
   const currentLi = getCurrentEle()
-  if (currentLi) {
-    const text = currentLi.innerText
-    /*文本为空时，需要判断是否只有一个节点*/
-    if (text.trim().length === 0) {
-      //trim()用于清空空格
-      console.log('当前只有一个节点，需要删除当前块')
-      if (target.children.length === 1) {
-        editorApi.blocks.delete()
-      } else {
-        const pre = currentLi.previousElementSibling as HTMLLIElement
-        target.removeChild(currentLi)
-
-        setCursorToElement(pre)
-      }
-    } else {
-      // 存在文字时，进行切片操作
-      const length = text.length
-      currentLi.innerText = text.slice(0, length - 1)
-      setCursorToElement(currentLi)
-    }
+  if (!currentLi) return
+  const text = currentLi.innerText
+  /*文本为空时，需要判断是否只有一个节点*/
+  if (text.trim().length === 0) {
+    // //trim()用于清空空格
+    deleteLi(currentLi.parentElement as HTMLElement, currentLi, target, editorApi)
+  } else {
+    // 存在文字时，进行切片操作
+    const length = text.length
+    currentLi.innerText = text.slice(0, length - 1)
+    setCursorToElement(currentLi)
   }
+}
+
+/**
+ * @description: 处理嵌套情况,target指向ul/ol
+ * @param {HTMLElement} node
+ * @param {target}
+ * */
+const deleteLi = (node: HTMLElement, cur: HTMLElement, target, edtior): void => {
+  let pre = (cur.previousElementSibling as HTMLLIElement) || null
+  //处理嵌套
+  if (!pre && node != target) pre = node.previousElementSibling as HTMLLIElement
+  if (!pre) {
+    deleteCurrentBlock(edtior) //只剩下一个节点时，删除当前块
+    return
+  }
+  if (pre && node.children.length === 1) node.remove()
+  node.removeChild(cur)
+  setCursorToElement(pre) //光标移动
 }
 
 export const inertBlock = (

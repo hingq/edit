@@ -18,7 +18,9 @@ import {
   isLinkDelete,
   isQuoteDelete,
   handleEdit,
-  isUnOrderListDelete
+  isUnOrderListDelete,
+  isEnterOnOrderedList,
+  isEnterOnunOrderedList
 } from '@renderer/util/handle'
 import unOrderListTool from '@renderer/util/unOrderList'
 
@@ -142,14 +144,25 @@ function bindGlobalBlockEvents(editorApi: any) {
     (e: any) => {
       // 处理键盘⬇️
       handleArrowDown(e)
-      // orderList 删除
+      // orderList;
       if (isBackspaceOnOrderedList(e.key, e.target) || isUnOrderListDelete(e)) {
         e.preventDefault()
         e.stopPropagation()
+
         handleOrderedListBackspace(e.target, editorApi)
         return
       }
-
+      const el = getCurrentEle()
+      if (
+        isEnterOnOrderedList(e.key, e.target, el) ||
+        isEnterOnunOrderedList(e.key, e.target, el)
+      ) {
+        e.preventDefault()
+        const li = make('li')
+        el?.parentElement?.appendChild(li)
+        setCursorToElement(li)
+      }
+      //处理 ‘/’
       handleSlash(e)
     },
     true
